@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -60,12 +61,10 @@ public class MainActivity extends AppCompatActivity implements GlassGestureDetec
     private ChatRequestTask chatRequestTask;
     List<ChatMessage> messages = new ArrayList<>();
 
-
     private String LANDING_KEY = "land_sk_2xGcPfIeENggfWfCeUEVBL1XEF4rIJyDzhq2P0X3dpRM7R579b";
     String landingApiUrl = "https://predict.app.landing.ai/inference/v1/predict?endpoint_id=23143f74-008b-4a8f-a038-da6044fd5320";
     String landingMethod = "POST"; // Use POST method for uploading files
     String imagePath = "YOUR_IMAGE_PATH"; // Replace with the actual image file path
-
 
     private String APIKEY ="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";
     private String MODEL ="gpt-3.5-turbo-16k";
@@ -87,6 +86,16 @@ Enable USB Debug => now Glass should ask allow?
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_chat);
+
+
+        // set data
+        String newData = "{\"message\": \"This is a new message\"}";
+        new FirebaseSendTask().execute(newData);
+
+
+        // get data from firebase
+        new FirebaseFetchTask().execute();
+
 
         glassGestureDetector = new GlassGestureDetector(this, this);
 
@@ -136,13 +145,57 @@ Enable USB Debug => now Glass should ask allow?
             }
         });
 
-
         if(ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED){
             checkPermission();
         }
     }
 
 
+    private class FirebaseSendTask extends AsyncTask<String, Void, Boolean> {
+
+        @Override
+        protected Boolean doInBackground(String... params) {
+            if (params.length == 0) {
+                return false;
+            }
+
+            String newData = params[0];
+
+            // Send data to Firebase using FirebaseHelper
+            return FirebaseHelper.sendDataToFirebase(newData);
+        }
+
+        @Override
+        protected void onPostExecute(Boolean success) {
+            if (success) {
+                Log.d(TAG, "Data sent to Firebase successfully");
+                // Handle success, e.g., show a confirmation message to the user
+            } else {
+                Log.e(TAG, "Failed to send data to Firebase");
+                // Handle failure, e.g., show an error message to the user
+            }
+        }
+    }
+
+    private class FirebaseFetchTask extends AsyncTask<Void, Void, String> {
+
+        @Override
+        protected String doInBackground(Void... voids) {
+            // Call the FirebaseHelper to fetch data from Firebase
+            return FirebaseHelper.fetchDataFromFirebase();
+        }
+
+        @Override
+        protected void onPostExecute(String firebaseData) {
+            if (firebaseData != null) {
+                Log.d(TAG, "Got data from Firebase: " + firebaseData);
+                // Process the Firebase data as needed
+            } else {
+                Log.d(TAG, "Failed to get data from Firebase");
+                // Handle the error or retry logic
+            }
+        }
+    }
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         Log.d(TAG,"didispatchTouchEvent");
