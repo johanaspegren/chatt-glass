@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    tools:context=".MainActivity">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/transparent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+        <!-- Customize Toolbar contents here -->
+    </androidx.appcompat.widget.Toolbar>
+
+
+    <VideoView
+        android:id="@+id/videoView"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <ImageView
+        android:id="@+id/wifiStatusIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="32dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/wifi_offline" />
+
+    <ImageView
+        android:id="@+id/firebaseStatusIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="@+id/wifiStatusIcon"
+        app:layout_constraintTop_toBottomOf="@+id/wifiStatusIcon"
+        app:srcCompat="@drawable/cloud_offline" />
+
+    <ImageView
+        android:id="@+id/openaiStatusIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:layout_constraintStart_toStartOf="@+id/firebaseStatusIcon"
+        app:layout_constraintTop_toBottomOf="@+id/firebaseStatusIcon"
+        app:srcCompat="@drawable/robot_offline" />
+
+    <TextView
+        android:id="@+id/txtWifiStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:text="TextView"
+        app:layout_constraintBottom_toBottomOf="@+id/wifiStatusIcon"
+        app:layout_constraintStart_toEndOf="@+id/wifiStatusIcon"
+        app:layout_constraintTop_toTopOf="@+id/wifiStatusIcon" />
+
+    <TextView
+        android:id="@+id/txtCloudStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TextView"
+        app:layout_constraintBottom_toBottomOf="@+id/firebaseStatusIcon"
+        app:layout_constraintStart_toStartOf="@+id/txtWifiStatus"
+        app:layout_constraintTop_toTopOf="@+id/firebaseStatusIcon" />
+
+    <TextView
+        android:id="@+id/txtRobotStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TextView"
+        app:layout_constraintBottom_toBottomOf="@+id/openaiStatusIcon"
+        app:layout_constraintStart_toStartOf="@+id/txtCloudStatus"
+        app:layout_constraintTop_toTopOf="@+id/openaiStatusIcon" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

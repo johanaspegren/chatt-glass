@@ -1,0 +1,8 @@
+<resources>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Set the background color to black -->
+        <item name="android:windowBackground">@android:color/black</item>
+        <!-- Add other style attributes as needed -->
+        <item name="android:textColor">@android:color/white</item>
+    </style>
+</resources>
