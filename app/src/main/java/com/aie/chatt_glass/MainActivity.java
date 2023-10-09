@@ -61,6 +61,8 @@ public class MainActivity extends AppCompatActivity implements GlassGestureDetec
     private ChatRequestTask chatRequestTask;
     List<ChatMessage> messages = new ArrayList<>();
 
+    private String ACGCPKEY_VALUE = "ya29.a0AfB_byD9nPSzCARFG0LyH1ZwbLdNtszBYJX8nSV6td0hWZAh9zmMn3fQARm8Ui8BPH251epZ4V4oGvfOxxdd416pa_ziuWH44SV8ExFe0du98OOs700J4q25b6ANp-VugHbPZB8UCxGgmvlXHWjPjCTRLapn4MqFtyqYFglYpLD-RpKcCWS5zz4DiBrtq9CMDVyN5ebyAAXZamZrTMfFlYSzuaqiP1A4r6AxO4hVL2HurCh_U2QD4xAZUvql6Zka6c2tnviqPb_Kr3WxfRVf321wiuClU4evTIUN_21ooZq50-2Cg3Th3RTN6_rDcgoaGFx_hsAr13AxmYHWERYDoMVgB1B6bbS2-K2xrglxJcvA_Bwcjja456DPIwFHDuPQCnbVUl9veM8nB6yO05hc3Bf0Ys-llCbmaCgYKAcMSARISFQGOcNnCXwmNq3_caTW5ZUQfLdqhlQ0423";
+
     private String LANDING_KEY = "land_sk_2xGcPfIeENggfWfCeUEVBL1XEF4rIJyDzhq2P0X3dpRM7R579b";
     String landingApiUrl = "https://predict.app.landing.ai/inference/v1/predict?endpoint_id=23143f74-008b-4a8f-a038-da6044fd5320";
     String landingMethod = "POST"; // Use POST method for uploading files
@@ -87,6 +89,8 @@ Enable USB Debug => now Glass should ask allow?
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_chat);
 
+        executeAPIRequest();
+
 
         // set data
         String newData = "{\"message\": \"This is a new message\"}";
@@ -109,8 +113,6 @@ Enable USB Debug => now Glass should ask allow?
             thinkingVideo.setVisibility(View.GONE);
         });
 
-        thinkingVideo.start();
-        thinkingVideo.setVisibility(View.VISIBLE);
         // text to speech init
         textToSpeech = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
@@ -148,6 +150,15 @@ Enable USB Debug => now Glass should ask allow?
         if(ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED){
             checkPermission();
         }
+    }
+
+    private void executeAPIRequest() {
+
+        APIRequestTask task = new APIRequestTask(ACGCPKEY_VALUE);
+        task.execute();
+
+        // Use an onPostExecute method inside the AsyncTask to process the result, or pass a callback to the APIRequestTask constructor
+        // For simplicity, this code doesn't handle the response outside of the AsyncTask
     }
 
 
