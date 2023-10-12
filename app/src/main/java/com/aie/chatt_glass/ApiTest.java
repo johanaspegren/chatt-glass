@@ -71,7 +71,7 @@ public class ApiTest {
 
             summaryText = ApiTest.extractSummaryText(responseString);
             Log.d(TAG, "make request done summaryText" + summaryText);
-//            Log.d(TAG, "make request done" + responseString);
+            Log.d(TAG, "make request done" + responseString);
 
         } catch (Exception e) {
             Log.e(TAG, "Error making the request", e);

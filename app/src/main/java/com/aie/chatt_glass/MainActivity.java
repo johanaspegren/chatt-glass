@@ -45,7 +45,6 @@ public class MainActivity extends AppCompatActivity implements GlassGestureDetec
     private ChatRequestTask chatRequestTask;
     List<ChatMessage> messages = new ArrayList<>();
 
-    private String ACGCPKEY_VALUE = "ya29.a0AfB_byD9nPSzCARFG0LyH1ZwbLdNtszBYJX8nSV6td0hWZAh9zmMn3fQARm8Ui8BPH251epZ4V4oGvfOxxdd416pa_ziuWH44SV8ExFe0du98OOs700J4q25b6ANp-VugHbPZB8UCxGgmvlXHWjPjCTRLapn4MqFtyqYFglYpLD-RpKcCWS5zz4DiBrtq9CMDVyN5ebyAAXZamZrTMfFlYSzuaqiP1A4r6AxO4hVL2HurCh_U2QD4xAZUvql6Zka6c2tnviqPb_Kr3WxfRVf321wiuClU4evTIUN_21ooZq50-2Cg3Th3RTN6_rDcgoaGFx_hsAr13AxmYHWERYDoMVgB1B6bbS2-K2xrglxJcvA_Bwcjja456DPIwFHDuPQCnbVUl9veM8nB6yO05hc3Bf0Ys-llCbmaCgYKAcMSARISFQGOcNnCXwmNq3_caTW5ZUQfLdqhlQ0423";
 
     private String LANDING_KEY = "land_sk_2xGcPfIeENggfWfCeUEVBL1XEF4rIJyDzhq2P0X3dpRM7R579b";
     String landingApiUrl = "https://predict.app.landing.ai/inference/v1/predict?endpoint_id=23143f74-008b-4a8f-a038-da6044fd5320";
@@ -74,6 +73,10 @@ Enable USB Debug => now Glass should ask allow?
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_chat);
 
+
+        // fetch api from firebase
+
+
         //executeAPIRequest("What is the dimension for the 6000 Power unit?");
 
         //String question = "What are the dimensions of the 6000 Power unit?";
@@ -84,7 +87,7 @@ Enable USB Debug => now Glass should ask allow?
         //new FirebaseSendTask().execute(newData);
 
         // get data from firebase
-        //new FirebaseFetchTask().execute();
+        new FirebaseFetchTask().execute();
 
         glassGestureDetector = new GlassGestureDetector(this, this);
 
@@ -138,8 +141,8 @@ Enable USB Debug => now Glass should ask allow?
 
     private void executeAPIRequest(String prompt) {
 
-        APIRequestTask task = new APIRequestTask(ACGCPKEY_VALUE, prompt);
-        task.execute();
+//        APIRequestTask task = new APIRequestTask(ACGCPKEY_VALUE, prompt);
+//        task.execute();
 
         // Use an onPostExecute method inside the AsyncTask to process the result, or pass a callback to the APIRequestTask constructor
         // For simplicity, this code doesn't handle the response outside of the AsyncTask
@@ -183,8 +186,18 @@ Enable USB Debug => now Glass should ask allow?
         @Override
         protected void onPostExecute(String firebaseData) {
             if (firebaseData != null) {
+                try {
+                    JSONObject jsonObject = new JSONObject(firebaseData);
+                    String keyValue = jsonObject.getJSONObject("key").getString("key");
+                    Log.d(TAG, "TOKEN " + keyValue);  // Output: ya29
+                    GC_API = keyValue;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                // run the push-key-to-fb.pl in GOOGLE_GLASS/java_sandbox/
                 Log.d(TAG, "Got data from Firebase: " + firebaseData);
                 // Process the Firebase data as needed
+
             } else {
                 Log.d(TAG, "Failed to get data from Firebase");
                 // Handle the error or retry logic
@@ -227,8 +240,6 @@ Enable USB Debug => now Glass should ask allow?
 
 
     private void askDoc(String question) {
-        String apiKey = "ya29.a0AfB_byDHWyJlp7X6UbB1gVRT0QrrhGHsEd0CTB62GpItzYcAWR441MAtAfLNeb1nWhlIH_qcNzZ0_YuMwK8AsnK6JleG2aTUD9SOMO_f2JkEA2-LMxRCfQB6yrTrh5NAEtmPmUB080vPULm849e5RqhLxPOv5SCX5bJZMVFEzfQoii-mm149I32YMHZ0IJKMeGrI-qLCoIgWVwkpugReh4scHPW6WzUSqAOvjyYXlvwCwUPAHH3H5U5uJfROt1KG5tJ84lMigW2LaZawQ4zZwKG4x0704BpEZVxRp80NNw3-raloZkM32Nz2iQYp06O3ueXRiChOS8unsG43UMDRKQOhax8yfY_zaPYbw3xmpOwbwctZRwn2kIWzYsKSdFVmGCNNdCuYJm_vMATMhdRyyHyHVr27hGQaCgYKAc4SARISFQGOcNnCxSvMhTV0ZP7nOMePC6mzVQ0422";
-        GC_API = apiKey;
 
         ApiTest.requestApiResponse(
             GC_API, question, response -> {
