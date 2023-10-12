@@ -13,8 +13,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
 import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
@@ -22,32 +20,18 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
-import android.widget.Toolbar;
 import android.widget.VideoView;
 
-
-import com.aie.chatt_glass.ChatMessage;
-import com.aie.chatt_glass.ChatRequestTask;
-import com.aie.chatt_glass.GlassGestureDetector;
-import com.aie.chatt_glass.R;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements GlassGestureDetector.OnGestureListener {
     private static final int REQUEST_CODE_PERMISSIONS = 101;
 //    private static final String[] REQUIRED_PERMISSIONS = {Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO};
-
     private static final int REQUEST_CODE_VOICE = 999;
     private static final Integer REQUEST_CODE_AUDIO_REC_PERM = 1;
     private static final int REQUEST_CODE_CAMERA_PERM = 2;
@@ -68,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements GlassGestureDetec
     String landingMethod = "POST"; // Use POST method for uploading files
     String imagePath = "YOUR_IMAGE_PATH"; // Replace with the actual image file path
 
+    String GC_API;
     private String APIKEY ="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";
     private String MODEL ="gpt-3.5-turbo-16k";
 
@@ -89,17 +74,17 @@ Enable USB Debug => now Glass should ask allow?
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_chat);
 
-        executeAPIRequest();
+        //executeAPIRequest("What is the dimension for the 6000 Power unit?");
 
+        //String question = "What are the dimensions of the 6000 Power unit?";
+        //askDoc(question);
 
         // set data
         String newData = "{\"message\": \"This is a new message\"}";
-        new FirebaseSendTask().execute(newData);
-
+        //new FirebaseSendTask().execute(newData);
 
         // get data from firebase
-        new FirebaseFetchTask().execute();
-
+        //new FirebaseFetchTask().execute();
 
         glassGestureDetector = new GlassGestureDetector(this, this);
 
@@ -128,7 +113,6 @@ Enable USB Debug => now Glass should ask allow?
                             // hide thinking video
                             thinkingVideo.stopPlayback();
                             thinkingVideo.setVisibility(View.GONE);
-
                         }
 
                         @Override
@@ -152,9 +136,9 @@ Enable USB Debug => now Glass should ask allow?
         }
     }
 
-    private void executeAPIRequest() {
+    private void executeAPIRequest(String prompt) {
 
-        APIRequestTask task = new APIRequestTask(ACGCPKEY_VALUE);
+        APIRequestTask task = new APIRequestTask(ACGCPKEY_VALUE, prompt);
         task.execute();
 
         // Use an onPostExecute method inside the AsyncTask to process the result, or pass a callback to the APIRequestTask constructor
@@ -242,6 +226,18 @@ Enable USB Debug => now Glass should ask allow?
     }
 
 
+    private void askDoc(String question) {
+        String apiKey = "ya29.a0AfB_byDHWyJlp7X6UbB1gVRT0QrrhGHsEd0CTB62GpItzYcAWR441MAtAfLNeb1nWhlIH_qcNzZ0_YuMwK8AsnK6JleG2aTUD9SOMO_f2JkEA2-LMxRCfQB6yrTrh5NAEtmPmUB080vPULm849e5RqhLxPOv5SCX5bJZMVFEzfQoii-mm149I32YMHZ0IJKMeGrI-qLCoIgWVwkpugReh4scHPW6WzUSqAOvjyYXlvwCwUPAHH3H5U5uJfROt1KG5tJ84lMigW2LaZawQ4zZwKG4x0704BpEZVxRp80NNw3-raloZkM32Nz2iQYp06O3ueXRiChOS8unsG43UMDRKQOhax8yfY_zaPYbw3xmpOwbwctZRwn2kIWzYsKSdFVmGCNNdCuYJm_vMATMhdRyyHyHVr27hGQaCgYKAc4SARISFQGOcNnCxSvMhTV0ZP7nOMePC6mzVQ0422";
+        GC_API = apiKey;
+
+        ApiTest.requestApiResponse(
+            GC_API, question, response -> {
+                Log.d("MainActivity",
+                        "ApiTest Received summary text: " + response);
+                handleChatResponse(response);
+            });
+    }
+
     private void sendChatRequest(String userMessage) {
         ChatMessage userChatMessage = new ChatMessage("user", userMessage);
         messages.add(userChatMessage);
@@ -250,7 +246,18 @@ Enable USB Debug => now Glass should ask allow?
         chatRequestTask = new ChatRequestTask(APIKEY, MODEL, messages, new ChatRequestTask.ChatRequestListener() {
             @Override
             public void onSuccess(String response) {
-                handleChatResponse(response);
+                String cleanResp = "";
+
+                JSONObject jsonObject = null;
+                try {
+                    jsonObject = new JSONObject(response);
+                    JSONObject messageObject = jsonObject.getJSONArray("choices").getJSONObject(0).getJSONObject("message");
+                    cleanResp = messageObject.getString("content");
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+
+                handleChatResponse(cleanResp);
             }
 
             @Override
@@ -265,22 +272,14 @@ Enable USB Debug => now Glass should ask allow?
     private void handleChatResponse(String response) {
         // Handle the response from the API
         Log.d(TAG, response);
-        try {
-            JSONObject jsonObject = new JSONObject(response);
-            JSONObject messageObject = jsonObject.getJSONArray("choices").getJSONObject(0).getJSONObject("message");
 
-            String content = messageObject.getString("content");
+        // System.out.println("Content: " + content);
+        textToSpeech.speak(response, TextToSpeech.QUEUE_FLUSH, null, UNIQUE_ID);
 
-            // System.out.println("Content: " + content);
-            textToSpeech.speak(content, TextToSpeech.QUEUE_FLUSH, null, UNIQUE_ID);
+        // add chattys
+        ChatMessage assistantChatMessage = new ChatMessage("assistant", response);
+        messages.add(assistantChatMessage);
 
-            // add chattys
-            ChatMessage assistantChatMessage = new ChatMessage("assistant", content);
-            messages.add(assistantChatMessage);
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
     }
 
     @Override
@@ -314,7 +313,9 @@ Enable USB Debug => now Glass should ask allow?
                 if(results.toString().contains("blueprint")){
                     // perhaps open QR
                 }
-                sendChatRequest(results.toString());
+                //sendChatRequest(results.toString());
+
+                askDoc(results.toString());
 
                 // start thinking video
                 thinkingVideo.start();
@@ -339,6 +340,7 @@ Enable USB Debug => now Glass should ask allow?
 
 
     }
+
 
     private void requestVoiceRecognition() {
         final Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
