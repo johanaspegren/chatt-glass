@@ -47,6 +47,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
+
 
 public class MainActivity extends AppCompatActivity implements GlassGestureDetector.OnGestureListener {
     private static final int REQUEST_CODE_PERMISSIONS = 101;
@@ -65,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements GlassGestureDetec
     private ChatRequestTask chatRequestTask;
     List<ChatMessage> messages = new ArrayList<>();
 
+
     private String LANDING_KEY = "land_sk_2xGcPfIeENggfWfCeUEVBL1XEF4rIJyDzhq2P0X3dpRM7R579b";
     String landingApiUrl = "https://predict.app.landing.ai/inference/v1/predict?endpoint_id=23143f74-008b-4a8f-a038-da6044fd5320";
     String landingMethod = "POST"; // Use POST method for uploading files
@@ -73,10 +77,13 @@ public class MainActivity extends AppCompatActivity implements GlassGestureDetec
     private String APIKEY ="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";
     private String MODEL ="gpt-3.5-turbo-16k";
 
+    private String DOC_API = "";
+
     private GlassGestureDetector glassGestureDetector;
     private String UNIQUE_ID = "12345";
 
     VideoView thinkingVideo;
+    boolean stopListening;
 
     ImageView wifiStatusIcon;
     ImageView firebaseStatusIcon;
@@ -86,6 +93,7 @@ public class MainActivity extends AppCompatActivity implements GlassGestureDetec
     TextView firebaseStatusText;
     TextView openaiStatusText;
 
+    ImageView imgDrawing;
 
 /*
 Unplug USB cable from computer
@@ -100,6 +108,25 @@ Enable USB Debug => now Glass should ask allow?
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_chat);
 
+        String question = "Is this a test";
+        Log.d(TAG, "askdoc test api");
+        AskDocUtil.AskDoc(DOC_API, question, new AskDocUtil.AskDocCallback() {
+            @Override
+            public void onResult(String response) {
+                Log.d("AskDoc", "Response: " + response);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e("AskDoc", "Error: ", e);
+            }
+        });
+
+
+        stopListening = false;
+
+        imgDrawing = findViewById(R.id.imgDrawings);
+        imgDrawing.setVisibility(View.GONE);
         wifiStatusIcon = findViewById(R.id.wifiStatusIcon);
         firebaseStatusIcon = findViewById(R.id.firebaseStatusIcon);
         openaiStatusIcon = findViewById(R.id.openaiStatusIcon);
@@ -127,7 +154,17 @@ Enable USB Debug => now Glass should ask allow?
         glassGestureDetector = new GlassGestureDetector(this, this);
 
         // init the chat
-        messages.add(new ChatMessage("system", "You are a helpful assistant, answer questions with one or two sentences."));
+        messages.add(new ChatMessage(
+                "system",
+                "You are a helpful assistant, answer questions with one or two sentences." +
+                        "You will help me identify the correct drawing to show. There are a few that " +
+                        "you know of: " +
+                        "{'description':'Raspberry pin out', 'filename':'rpi_3'}," +
+                        "{'description':'Arduino pin out', 'filename':'ard_1'}," +
+                        "{'description':'other', 'filename':'other_1'}" +
+                        "If I am asking for a drawing that matches the description of any of the items in the list " +
+                        "then return the filename in the format filename:filename"));
+
 
         // video while thinking
         thinkingVideo = findViewById(R.id.videoView);
@@ -141,15 +178,21 @@ Enable USB Debug => now Glass should ask allow?
             @Override
             public void onInit(int status) {
                 Log.d(TAG, "TTS init, utteranceId");
+                textToSpeech.speak("Hi, ready to get busy?", TextToSpeech.QUEUE_FLUSH, null, UNIQUE_ID);
 
                 if (status == TextToSpeech.SUCCESS) {
                     textToSpeech.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                         @Override
                         public void onDone(String utteranceId) {
                             Log.d(TAG, "TTS finished");
+                            if(stopListening){
+                                stopListening = false;
+                                return;
+                            }
+
                             requestVoiceRecognition();
                             // hide thinking video
-                            thinkingVideo.stopPlayback();
+                            // thinkingVideo.stopPlayback();
                             thinkingVideo.setVisibility(View.GONE);
 
                         }
@@ -170,9 +213,23 @@ Enable USB Debug => now Glass should ask allow?
             }
         });
 
+
         if(ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED){
             checkPermission();
         }
+
+    }
+
+    private void scanQr(){
+        Log.d(TAG, "init scanQr");
+        IntentIntegrator integrator = new IntentIntegrator(this);
+        integrator.setDesiredBarcodeFormats(IntentIntegrator.QR_CODE, IntentIntegrator.CODE_128);
+        integrator.setPrompt("Scan a barcode");
+        integrator.setCameraId(0); // Use the device's default camera
+        integrator.setOrientationLocked(false); // Allow both portrait and landscape orientation
+        integrator.setBeepEnabled(true); // Enable a beep sound after successful scan
+        integrator.setRequestCode(REQUEST_QR);
+        integrator.initiateScan();
     }
 
     private boolean isOpenAIOnline() {
@@ -346,6 +403,15 @@ Enable USB Debug => now Glass should ask allow?
             // set icon to active
             setOpenaiStatus(true);
 
+            if(content.toString().contains("drawing")) {
+                // imgDrawing.setVisibility(View.VISIBLE);
+                if (content.toString().contains("rpi_3")) {
+                 //   imgDrawing.setImageResource(R.drawable.rpi_3);
+                }
+                if (content.toString().contains("ard_1")) {
+                 //   imgDrawing.setImageResource(R.drawable.ard_1);
+                }
+            }
 
             // System.out.println("Content: " + content);
             textToSpeech.speak(content, TextToSpeech.QUEUE_FLUSH, null, UNIQUE_ID);
@@ -387,15 +453,21 @@ Enable USB Debug => now Glass should ask allow?
             if (results != null && results.size() > 0 && !results.get(0).isEmpty()) {
                 Log.d(TAG, "Understood:" + results.toString());
                 //textToSpeech.speak(results.toString(), TextToSpeech.QUEUE_FLUSH, null, null);
-                if(results.toString().contains("blueprint")){
-                    // perhaps open QR
+                if(results.toString().contains("QR")) {
+                    textToSpeech.speak("Scanning QR", TextToSpeech.QUEUE_FLUSH, null, UNIQUE_ID);
+                    stopListening = true;
+                    scanQr();
+                    return;
+                }else if(results.toString().contains("stop")){
+                        textToSpeech.speak("Ok, see you later", TextToSpeech.QUEUE_FLUSH, null, UNIQUE_ID);
+                        stopListening = true;
+                } else {
+                    // start thinking video
+                    thinkingVideo.start();
+                    thinkingVideo.setVisibility(View.VISIBLE);
+
+                    sendChatRequest(results.toString());
                 }
-                sendChatRequest(results.toString());
-
-                // start thinking video
-                thinkingVideo.start();
-                thinkingVideo.setVisibility(View.VISIBLE);
-
             }
         }
 
@@ -405,15 +477,16 @@ Enable USB Debug => now Glass should ask allow?
             // Now you have the selected image URI, and you can perform actions with it.
         }
 
-        if (requestCode == REQUEST_QR && resultCode == RESULT_OK) {
-            Bundle extras = data.getExtras();
-            Log.d(TAG, "fetch qr extras" + extras.toString());
-
-            // Now you have the selected image URI, and you can perform actions with it.
+        if (requestCode == REQUEST_QR){
+            if(resultCode == RESULT_OK && data != null) {
+    //            IntentResult result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+                String contents = data.getStringExtra("SCAN_RESULT");
+                Log.d(TAG, "qr string = " + contents);
+                sendChatRequest("I have scanned a QR code with this content, please explain: " + contents);
+            } else {
+                super.onActivityResult(requestCode, resultCode, data);
+            }
         }
-
-
-
     }
 
     private void requestVoiceRecognition() {

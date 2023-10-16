@@ -86,4 +86,13 @@
         app:layout_constraintStart_toStartOf="@+id/txtCloudStatus"
         app:layout_constraintTop_toTopOf="@+id/openaiStatusIcon" />
 
+    <ImageView
+        android:id="@+id/imgDrawings"
+        android:layout_width="425dp"
+        android:layout_height="409dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/rpi_3" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
