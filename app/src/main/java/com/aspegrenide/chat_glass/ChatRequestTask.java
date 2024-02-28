@@ -12,6 +12,7 @@ import java.util.List;
 
 public class ChatRequestTask extends AsyncTask<Void, Void, String> {
 
+    private static final String TAG = "ChatRequest";
     private final String apiKey;
     private final String model;
     private final List<ChatMessage> messages;
@@ -66,6 +67,7 @@ public class ChatRequestTask extends AsyncTask<Void, Void, String> {
                 String inputLine;
                 while ((inputLine = in.readLine()) != null) {
                     response.append(inputLine);
+                    Log.d(TAG, "append: " + inputLine);
                 }
                 in.close();
             } else {

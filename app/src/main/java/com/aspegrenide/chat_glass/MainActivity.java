@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity implements GlassGestureDetec
     String landingMethod = "POST"; // Use POST method for uploading files
     String imagePath = "YOUR_IMAGE_PATH"; // Replace with the actual image file path
 
-    private String APIKEY ="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";
+    private String APIKEY ="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";
     private String MODEL ="gpt-3.5-turbo-16k";
 
     private String DOC_API = "";
@@ -93,14 +93,15 @@ public class MainActivity extends AppCompatActivity implements GlassGestureDetec
     TextView firebaseStatusText;
     TextView openaiStatusText;
 
-    ImageView imgDrawing;
-
+    TextView responsetext;
 /*
 Unplug USB cable from computer
 Revoke USB Debug permissions
 Disable USB Debug
 Plug USB cable in computer
 Enable USB Debug => now Glass should ask allow?
+
+Use for example Vysor to access the screen
  */
 
     @Override
@@ -108,25 +109,8 @@ Enable USB Debug => now Glass should ask allow?
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_chat);
 
-        String question = "Is this a test";
-        Log.d(TAG, "askdoc test api");
-        AskDocUtil.AskDoc(DOC_API, question, new AskDocUtil.AskDocCallback() {
-            @Override
-            public void onResult(String response) {
-                Log.d("AskDoc", "Response: " + response);
-            }
-
-            @Override
-            public void onError(Exception e) {
-                Log.e("AskDoc", "Error: ", e);
-            }
-        });
-
-
         stopListening = false;
 
-        imgDrawing = findViewById(R.id.imgDrawings);
-        imgDrawing.setVisibility(View.GONE);
         wifiStatusIcon = findViewById(R.id.wifiStatusIcon);
         firebaseStatusIcon = findViewById(R.id.firebaseStatusIcon);
         openaiStatusIcon = findViewById(R.id.openaiStatusIcon);
@@ -135,14 +119,19 @@ Enable USB Debug => now Glass should ask allow?
         firebaseStatusText = findViewById(R.id.txtCloudStatus);
         openaiStatusText = findViewById(R.id.txtRobotStatus);
 
+        responsetext = findViewById(R.id.txtResponse);
+
+
         // Check the status of each component and update the icons accordingly
         boolean isWifiConnected = isWifiConnected(); // Implement this method
         boolean isFirebaseConnected = isFirebaseConnected(); // Implement this method
-        boolean isOpenAIOnline = isOpenAIOnline(); // Implement this method
+        //boolean isOpenAIOnline = isOpenAIOnline(); // Implement this method
 
         setWifiStatus(isWifiConnected());
         setFirebaseStatus(isFirebaseConnected);
-        setOpenaiStatus(isOpenAIOnline());
+        //setOpenaiStatus(isOpenAIOnline());
+
+        showResponseText(false);
 
         // set data
         // String newData = "{\"message\": \"This is a new message\"}";
@@ -156,14 +145,7 @@ Enable USB Debug => now Glass should ask allow?
         // init the chat
         messages.add(new ChatMessage(
                 "system",
-                "You are a helpful assistant, answer questions with one or two sentences." +
-                        "You will help me identify the correct drawing to show. There are a few that " +
-                        "you know of: " +
-                        "{'description':'Raspberry pin out', 'filename':'rpi_3'}," +
-                        "{'description':'Arduino pin out', 'filename':'ard_1'}," +
-                        "{'description':'other', 'filename':'other_1'}" +
-                        "If I am asking for a drawing that matches the description of any of the items in the list " +
-                        "then return the filename in the format filename:filename"));
+                "You are a helpful assistant, answer questions with one or two sentences."));
 
 
         // video while thinking
@@ -194,7 +176,6 @@ Enable USB Debug => now Glass should ask allow?
                             // hide thinking video
                             // thinkingVideo.stopPlayback();
                             thinkingVideo.setVisibility(View.GONE);
-
                         }
 
                         @Override
@@ -213,11 +194,9 @@ Enable USB Debug => now Glass should ask allow?
             }
         });
 
-
         if(ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED){
             checkPermission();
         }
-
     }
 
     private void scanQr(){
@@ -230,6 +209,22 @@ Enable USB Debug => now Glass should ask allow?
         integrator.setBeepEnabled(true); // Enable a beep sound after successful scan
         integrator.setRequestCode(REQUEST_QR);
         integrator.initiateScan();
+    }
+
+    private void askDoc(){
+        String question = "Is this a test";
+        Log.d(TAG, "askdoc test api");
+        AskDocUtil.AskDoc(DOC_API, question, new AskDocUtil.AskDocCallback() {
+            @Override
+            public void onResult(String response) {
+                Log.d("AskDoc", "Response: " + response);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e("AskDoc", "Error: ", e);
+            }
+        });
     }
 
     private boolean isOpenAIOnline() {
@@ -248,13 +243,11 @@ Enable USB Debug => now Glass should ask allow?
 
         if (connectivityManager != null) {
             NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-
             // Check if the active network is Wi-Fi and it is connected
             if (networkInfo != null && networkInfo.getType() == ConnectivityManager.TYPE_WIFI && networkInfo.isConnected()) {
                 return true; // Wi-Fi is online
             }
         }
-
         return false; // Wi-Fi is not online or the check failed
     }
 
@@ -266,9 +259,7 @@ Enable USB Debug => now Glass should ask allow?
             if (params.length == 0) {
                 return false;
             }
-
             String newData = params[0];
-
             // Send data to Firebase using FirebaseHelper
             return com.aspegrenide.chat_glass.FirebaseHelper.sendDataToFirebase(newData);
         }
@@ -352,6 +343,7 @@ Enable USB Debug => now Glass should ask allow?
             case TAP:
                 Log.d(TAG, "tap");
                 //toggleRecording();
+                textToSpeech.speak("Yes, masssster?", TextToSpeech.QUEUE_FLUSH, null, UNIQUE_ID);
                 requestVoiceRecognition();
                 return true;
             case SWIPE_FORWARD:
@@ -374,6 +366,8 @@ Enable USB Debug => now Glass should ask allow?
     private void sendChatRequest(String userMessage) {
         ChatMessage userChatMessage = new ChatMessage("user", userMessage);
         messages.add(userChatMessage);
+        Log.d(TAG, "sendChatResponse: " + userMessage);
+        responsetext.setText("");
 
         // Execute the chat request task
         chatRequestTask = new ChatRequestTask(APIKEY, MODEL, messages, new ChatRequestTask.ChatRequestListener() {
@@ -381,7 +375,6 @@ Enable USB Debug => now Glass should ask allow?
             public void onSuccess(String response) {
                 handleChatResponse(response);
             }
-
             @Override
             public void onError(String error) {
                 Log.e(TAG, error);
@@ -397,24 +390,19 @@ Enable USB Debug => now Glass should ask allow?
         try {
             JSONObject jsonObject = new JSONObject(response);
             JSONObject messageObject = jsonObject.getJSONArray("choices").getJSONObject(0).getJSONObject("message");
-
             String content = messageObject.getString("content");
 
+            // show only response text
+            showResponseText(true);
+            thinkingVideo.setVisibility(View.GONE);
+
+            responsetext.setText(content);
             // set icon to active
             setOpenaiStatus(true);
 
-            if(content.toString().contains("drawing")) {
-                // imgDrawing.setVisibility(View.VISIBLE);
-                if (content.toString().contains("rpi_3")) {
-                 //   imgDrawing.setImageResource(R.drawable.rpi_3);
-                }
-                if (content.toString().contains("ard_1")) {
-                 //   imgDrawing.setImageResource(R.drawable.ard_1);
-                }
-            }
-
             // System.out.println("Content: " + content);
             textToSpeech.speak(content, TextToSpeech.QUEUE_FLUSH, null, UNIQUE_ID);
+            // would be nice to print this to screen
 
             // add chattys
             ChatMessage assistantChatMessage = new ChatMessage("assistant", content);
@@ -422,6 +410,40 @@ Enable USB Debug => now Glass should ask allow?
 
         } catch (JSONException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void showResponseText(boolean show) {
+        if(show){
+            //responsetext.setVisibility(View.VISIBLE);
+            thinkingVideo.setVisibility(View.GONE);
+            hideIcons(true);
+        } else {
+            responsetext.setText("");
+            hideIcons(false);
+        }
+    }
+
+
+    private void hideIcons(boolean hide) {
+        if(hide){
+
+            openaiStatusIcon.setVisibility(View.GONE);
+            wifiStatusIcon.setVisibility(View.GONE);
+            firebaseStatusIcon.setVisibility(View.GONE);
+
+            openaiStatusText.setVisibility(View.GONE);
+            wifiStatusText.setVisibility(View.GONE);
+            firebaseStatusText.setVisibility(View.GONE);
+        } else {
+
+            openaiStatusIcon.setVisibility(View.VISIBLE);
+            wifiStatusIcon.setVisibility(View.VISIBLE);
+            firebaseStatusIcon.setVisibility(View.VISIBLE);
+
+            openaiStatusText.setVisibility(View.VISIBLE);
+            wifiStatusText.setVisibility(View.VISIBLE);
+            firebaseStatusText.setVisibility(View.VISIBLE);
         }
     }
 
@@ -461,11 +483,14 @@ Enable USB Debug => now Glass should ask allow?
                 }else if(results.toString().contains("stop")){
                         textToSpeech.speak("Ok, see you later", TextToSpeech.QUEUE_FLUSH, null, UNIQUE_ID);
                         stopListening = true;
+                    // show basic screen
+                    showResponseText(false);
+
                 } else {
                     // start thinking video
                     thinkingVideo.start();
                     thinkingVideo.setVisibility(View.VISIBLE);
-
+                    hideIcons(true);
                     sendChatRequest(results.toString());
                 }
             }
@@ -491,11 +516,10 @@ Enable USB Debug => now Glass should ask allow?
 
     private void requestVoiceRecognition() {
         final Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "sv_SE");
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "sv_SE");
+//        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "sv_SE");
+//        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "sv_SE");
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-
         startActivityForResult(intent, REQUEST_CODE_VOICE);
     }
 
